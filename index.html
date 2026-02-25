@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apparel & Jewelry E-Commerce Dashboard</title>
+    <!-- Chart.js for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- SheetJS - Excel parser -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Papaparse for CSV -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <!-- jsPDF for export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0071ce;
+            --success: #28a745;
+            --warning: #ffc220;
+            --danger: #e94b3c;
+            --info: #17a2b8;
+            --light: #f8f9fa;
+            --dark: #333;
+            --gray: #6c757d;
+            --blue-light: #e7f3ff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, #004fa0 100%);
+            color: white;
+            padding: 40px 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .upload-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-section h3 {
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .upload-card {
+            border: 2px dashed var(--primary);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f0f5ff;
+        }
+
+        .upload-card:hover {
+            background: #e8f1ff;
+            border-color: #0057a8;
+            transform: translateY(-2px);
+        }
+
+        .upload-card input[type="file"] {
+            display: none;
+        }
+
+        .upload-card .icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .upload-card p {
+            margin: 5px 0;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .upload-card .hint {
+            font-size: 0.8em;
+            color: var(--gray);
+            margin-top: 8px;
+        }
+
+        .file-status {
+            font-size: 0.85em;
+            margin-top: 8px;
+            padding: 5px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .file-status.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .file-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0057a8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 113, 206, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #1e7e34;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c9322e;
+        }
+
+        .status-message {
+            padding: 15px 20px;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: none;
+            font-weight: 600;
+        }
+
+        .status-message.success {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-message.info {
+            display: block;
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        #dashboardSection {
+            display: none;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: var(--dark);
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-container h3 {
+            margin-bottom: 20px;
+            color: var(--dark);
+            font-size: 1.3em;
+        }
+
+        .collapsible-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            padding: 20px 25px;
+            background: linear-gradient(135deg, var(--light) 0%, #e9ecef 100%);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .collapsible-header:hover {
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+        }
+
+        .collapsible-header h3 {
+            font-size: 1.3em;
+            color: var(--dark);
+            margin: 0;
+        }
+
+        .toggle-icon {
+            font-size: 1.5em;
+            transition: transform 0.3s;
+        }
+
+        .collapsible-header.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            max-height: 2000px;
+            overflow: auto;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--light);
+        }
+
+        th {
+            padding: 15px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--dark);
+            border-bottom: 2px solid var(--primary);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--light);
+            font-size: 0.95em;
+        }
+
+        tbody tr:hover {
+            background: #f0f5ff;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .top-bottom-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .performer-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .performer-card.top {
+            border-left-color: var(--success);
+        }
+
+        .performer-name {
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 12px;
+            font-size: 1.05em;
+            word-break: break-word;
+        }
+
+        .performer-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .metric-item {
+            background: #f8f9fa;
+            padding: 8px 10px;
+            border-radius: 4px;
+        }
+
+        .metric-label {
+            font-size: 0.8em;
+            color: var(--gray);
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .metric-value {
+            font-weight: 700;
+            color: var(--dark);
+            font-size: 1.1em;
+        }
+
+        .metric-value.good {
+            color: var(--success);
+        }
+
+        .export-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            width: 60px;
+            height: 60px;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .export-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--gray);
+            margin-top: 40px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .top-bottom-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+            .upload-grid {
+                grid-template-columns: 1fr;
+            }
+            .performer-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 E-Commerce Intelligence Dashboard</h1>
+            <p>Apparel & Jewelry | Real-Time Analytics</p>
+        </header>
+
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <h3>📁 Upload Your Data Files</h3>
+            <p style="color: var(--gray); margin-bottom: 20px;">Upload your data files to analyze ecommerce performance across channels, brands, products, and search terms.</p>
+            
+            <div class="upload-grid">
+                <label class="upload-card">
+                    <input type="file" id="oneDashFile" accept=".xlsx,.xls" />
+                    <div class="icon">📊</div>
+                    <p>One Dash Data</p>
+                    <div class="hint">All Relevant Data.xlsx</div>
+                    <div id="oneDashStatus" class="file-status"></div>
+                </label>
+
+                <label class="upload-card">
+                    <input type="file" id="ecommFile" accept=".xlsx,.xls" />
+                    <div class="icon">💰</div>
+                    <p>Sales & Inventory</p>
+                    <div class="hint">eComm Sales file</div>
+                    <div id="ecommStatus" class="file-status"></div>
+                </label>
+
+                <label class="upload-card">
+                    <input type="file" id="nullSearchFiles" accept=".csv" multiple />
+                    <div class="icon">❓</div>
+                    <p>Null Searches (×3)</p>
+                    <div class="hint">CSV files (select all 3)</div>
+                    <div id="nullSearchStatus" class="file-status"></div>
+                </label>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-primary" id="analyzeBtn">🔍 Analyze Data</button>
+                <button class="btn-danger" id="clearBtn">🗑️ Clear All</button>
+            </div>
+
+            <div id="statusMessage" class="status-message"></div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboardSection">
+            <!-- KEY INSIGHTS CHARTS -->
+            <div class="section-title">📈 Key Performance Insights</div>
+            <div class="charts-grid" id="chartsContainer"></div>
+
+            <!-- SALES BY CHANNEL -->
+            <div class="section-title">📊 Sales by Channel</div>
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h3>Sales by Channel</h3>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="collapsible-content">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Channel</th>
+                                    <th>Sales</th>
+                                    <th>% of Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="salesByChannelBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SALES BY SUBCATEGORY -->
+            <div class="section-title">📂 Sales by Subcategory</div>
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h3>Top Subcategories by Sales</h3>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="collapsible-content">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Subcategory</th>
+                                    <th>Sales</th>
+                                    <th>% of Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="salesBySubcatBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BRAND PERFORMANCE -->
+            <div class="section-title">🏷️ Brand Performance</div>
+            <div class="top-bottom-grid" id="brandContainer"></div>
+
+            <!-- NULL SEARCH TERMS -->
+            <div class="section-title">🔍 Search Intelligence</div>
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h3>Null Search Terms - Optimization Opportunities (10+ searches)</h3>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="collapsible-content">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Search Term</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nullSearchBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TOP PRODUCTS -->
+            <div class="section-title">⭐ Product Excellence</div>
+            <div class="top-bottom-grid" id="productContainer"></div>
+
+            <!-- TOP PDPS -->
+            <div class="section-title">📋 Top Product Pages</div>
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h3>Top 10 PDPs by Sales</h3>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="collapsible-content">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Product Name</th>
+                                    <th>Sales</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pdpBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>💡 Upload your files to get started with comprehensive ecommerce analytics!</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">Built for Walmart Apparel & Jewelry teams | 🐶 Code Puppy</p>
+        </footer>
+    </div>
+
+    <!-- Export Button -->
+    <button class="export-button" id="exportBtn" title="Export Dashboard">📥</button>
+
+    <script>
+        let allData = {
+            oneDash: [],
+            ecomm: [],
+            nullSearches: []
+        };
+        let charts = {};
+
+        // File upload handlers
+        document.getElementById('oneDashFile').addEventListener('change', (e) => handleFileUpload(e, 'oneDash', 'oneDashStatus'));
+        document.getElementById('ecommFile').addEventListener('change', (e) => handleFileUpload(e, 'ecomm', 'ecommStatus'));
+        document.getElementById('nullSearchFiles').addEventListener('change', (e) => handleMultiFileUpload(e, 'nullSearches', 'nullSearchStatus'));
+
+        document.getElementById('analyzeBtn').addEventListener('click', analyzeDashboard);
+        document.getElementById('clearBtn').addEventListener('click', clearAllData);
+        document.getElementById('exportBtn').addEventListener('click', exportDashboard);
+
+        function handleFileUpload(event, dataKey, statusElementId) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById(statusElementId);
+            statusEl.textContent = '⏳ Processing...';
+            statusEl.className = 'file-status';
+            statusEl.style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const binaryString = e.target.result;
+                    const workbook = XLSX.read(binaryString, { type: 'binary' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    allData[dataKey] = jsonData.filter(row => Object.values(row).some(v => v));
+                    statusEl.textContent = '✅ Loaded ' + allData[dataKey].length + ' rows';
+                    statusEl.className = 'file-status success';
+                } catch (error) {
+                    statusEl.textContent = '❌ Error: ' + error.message;
+                    statusEl.className = 'file-status error';
+                }
+            };
+            
+            reader.readAsBinaryString(file);
+        }
+
+        function handleMultiFileUpload(event, dataKey, statusElementId) {
+            const files = event.target.files;
+            if (files.length === 0) return;
+
+            const statusEl = document.getElementById(statusElementId);
+            let loadedCount = 0;
+            let totalRows = 0;
+            allData[dataKey] = [];
+
+            Array.from(files).forEach((file, idx) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        Papa.parse(e.target.result, {
+                            header: true,
+                            complete: function(results) {
+                                const filtered = results.data.filter(row => Object.values(row).some(v => v));
+                                allData[dataKey] = allData[dataKey].concat(filtered);
+                                loadedCount++;
+                                totalRows += filtered.length;
+
+                                if (loadedCount === files.length) {
+                                    statusEl.textContent = '✅ Loaded ' + totalRows + ' rows from ' + files.length + ' files';
+                                    statusEl.className = 'file-status success';
+                                }
+                            }
+                        });
+                    } catch (error) {
+                        statusEl.textContent = '❌ Error: ' + error.message;
+                        statusEl.className = 'file-status error';
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        function showStatus(message, type) {
+            type = type || 'info';
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = 'status-message ' + type;
+        }
+
+        function analyzeDashboard() {
+            if (allData.oneDash.length === 0) {
+                showStatus('❌ Please upload One Dash data file', 'error');
+                return;
+            }
+
+            document.getElementById('dashboardSection').style.display = 'block';
+            showStatus('✅ Dashboard loaded successfully!', 'success');
+
+            buildCharts();
+            populateSalesByChannel();
+            populateSalesBySubcategory();
+            populateBrandPerformance();
+            populateNullSearchTerms();
+            populateTopProducts();
+            populatePDPs();
+            setupCollapsibles();
+            
+            setTimeout(function() {
+                document.getElementById('dashboardSection').scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+
+        function buildCharts() {
+            const chartsContainer = document.getElementById('chartsContainer');
+            chartsContainer.innerHTML = '';
+
+            const channelSales = calculateSalesByChannel();
+            if (channelSales && channelSales.labels.length > 0) {
+                createChart('Sales by Channel', 'chartSalesChannel', 'doughnut', channelSales, chartsContainer);
+            }
+        }
+
+        function createChart(title, canvasId, type, data, container) {
+            if (!container.querySelector('#' + canvasId)) {
+                const chartDiv = document.createElement('div');
+                chartDiv.className = 'chart-container';
+                chartDiv.innerHTML = '<h3>' + title + '</h3><canvas id="' + canvasId + '"></canvas>';
+                container.appendChild(chartDiv);
+            }
+
+            const canvas = document.getElementById(canvasId);
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            charts[canvasId] = new Chart(canvas, {
+                type: type,
+                data: data,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        title: { display: false }
+                    },
+                    scales: type === 'bar' ? {
+                        y: { beginAtZero: true }
+                    } : undefined
+                }
+            });
+        }
+
+        function calculateSalesByChannel() {
+            if (!allData.oneDash.length) return null;
+            
+            const channels = {};
+            allData.oneDash.forEach(row => {
+                const channel = findColumnValue(row, ['Channel Flag', 'CHANNEL_FLAG']);
+                const sales = parseFloat(String(findColumnValue(row, ['Sales', 'SALES', 'Amount']) || 0).replace(/[^0-9.]/g, '')) || 0;
+                
+                if (channel && !channel.includes('InClub Only')) {
+                    channels[channel] = (channels[channel] || 0) + sales;
+                }
+            });
+
+            return {
+                labels: Object.keys(channels),
+                datasets: [{
+                    data: Object.values(channels),
+                    backgroundColor: ['#0071ce', '#28a745', '#ffc220', '#e94b3c', '#17a2b8']
+                }]
+            };
+        }
+
+        function populateSalesByChannel() {
+            const tbody = document.getElementById('salesByChannelBody');
+            tbody.innerHTML = '';
+
+            if (!allData.oneDash.length) return;
+            
+            const channels = {};
+            let totalSales = 0;
+            
+            allData.oneDash.forEach(row => {
+                const channel = findColumnValue(row, ['Channel Flag', 'CHANNEL_FLAG']);
+                const sales = parseFloat(String(findColumnValue(row, ['Sales', 'SALES', 'Amount']) || 0).replace(/[^0-9.]/g, '')) || 0;
+                
+                if (channel && !channel.includes('InClub Only')) {
+                    channels[channel] = (channels[channel] || 0) + sales;
+                    totalSales += sales;
+                }
+            });
+
+            Object.entries(channels)
+                .sort(function(a, b) { return b[1] - a[1]; })
+                .forEach(function(item) {
+                    const channel = item[0];
+                    const sales = item[1];
+                    const pct = ((sales / totalSales) * 100).toFixed(1);
+                    tbody.innerHTML += '<tr><td>' + channel + '</td><td>$' + sales.toLocaleString('en-US', {maximumFractionDigits: 0}) + '</td><td>' + pct + '%</td></tr>';
+                });
+        }
+
+        function populateSalesBySubcategory() {
+            const tbody = document.getElementById('salesBySubcatBody');
+            tbody.innerHTML = '';
+
+            if (!allData.oneDash.length) return;
+            
+            const subcats = {};
+            let totalSales = 0;
+            
+            allData.oneDash.forEach(row => {
+                const subcat = findColumnValue(row, ['Sub Category', 'SUBCATEGORY', 'SubCategory']);
+                const sales = parseFloat(String(findColumnValue(row, ['Sales', 'SALES', 'Amount']) || 0).replace(/[^0-9.]/g, '')) || 0;
+                
+                if (subcat && sales > 0) {
+                    subcats[subcat] = (subcats[subcat] || 0) + sales;
+                    totalSales += sales;
+                }
+            });
+
+            Object.entries(subcats)
+                .sort(function(a, b) { return b[1] - a[1]; })
+                .slice(0, 50)
+                .forEach(function(item) {
+                    const subcat = item[0];
+                    const sales = item[1];
+                    const pct = ((sales / totalSales) * 100).toFixed(1);
+                    tbody.innerHTML += '<tr><td>' + subcat + '</td><td>$' + sales.toLocaleString('en-US', {maximumFractionDigits: 0}) + '</td><td>' + pct + '%</td></tr>';
+                });
+        }
+
+        function populateBrandPerformance() {
+            const container = document.getElementById('brandContainer');
+            container.innerHTML = '';
+
+            if (!allData.oneDash.length) return;
+            
+            const brands = {};
+            allData.oneDash.forEach(row => {
+                const brand = findColumnValue(row, ['Brand Name', 'BRAND_NAME', 'Brand']);
+                const sales = parseFloat(String(findColumnValue(row, ['Sales', 'SALES', 'Amount']) || 0).replace(/[^0-9.]/g, '')) || 0;
+                
+                if (brand && sales > 0) {
+                    if (!brands[brand]) brands[brand] = { sales: 0 };
+                    brands[brand].sales += sales;
+                }
+            });
+
+            const topBrands = Object.entries(brands)
+                .map(function(item) { return { name: item[0], sales: item[1].sales }; })
+                .sort(function(a, b) { return b.sales - a.sales; })
+                .slice(0, 5);
+
+            topBrands.forEach(function(brand, idx) {
+                container.innerHTML += '<div class="performer-card top"><div style="font-weight: 700; color: var(--primary); font-size: 1.2em; margin-bottom: 5px;">#' + (idx + 1) + '</div><div class="performer-name">' + brand.name + '</div><div class="performer-metrics"><div class="metric-item"><div class="metric-label">Sales</div><div class="metric-value good">$' + brand.sales.toLocaleString('en-US', {maximumFractionDigits: 0}) + '</div></div></div></div>';
+            });
+        }
+
+        function populateNullSearchTerms() {
+            const tbody = document.getElementById('nullSearchBody');
+            tbody.innerHTML = '';
+
+            if (!allData.nullSearches.length) return;
+            
+            const filtered = allData.nullSearches
+                .filter(function(row) {
+                    const count = parseInt(String(findColumnValue(row, ['TOTAL_SEARCHES_CNT', 'Count', 'COUNT']) || 0).replace(/,/g, '')) || 0;
+                    return count >= 10;
+                })
+                .slice(0, 100);
+
+            filtered.forEach(function(row) {
+                const term = findColumnValue(row, ['SEARCH_KEYWORD', 'Search Keyword', 'Keyword']);
+                const count = findColumnValue(row, ['TOTAL_SEARCHES_CNT', 'Count', 'COUNT']);
+                tbody.innerHTML += '<tr><td>' + term + '</td><td>' + count + '</td></tr>';
+            });
+        }
+
+        function populateTopProducts() {
+            const container = document.getElementById('productContainer');
+            container.innerHTML = '';
+
+            if (!allData.oneDash.length) return;
+            
+            const products = {};
+            allData.oneDash.forEach(row => {
+                const catalogId = findColumnValue(row, ['Prod Catalog ID', 'CATALOG_ID', 'Item #']);
+                const itemName = findColumnValue(row, ['Item Name', 'ITEM_NAME', 'Product Name']);
+                const reviews = parseInt(findColumnValue(row, ['Prod Reviews', 'REVIEWS', 'Review Count']) || 0);
+                const rating = parseFloat(findColumnValue(row, ['Prod Rating', 'RATING', 'Avg Rating']) || 0);
+                
+                if (catalogId && itemName && (reviews > 0 || rating > 0)) {
+                    if (!products[catalogId]) {
+                        products[catalogId] = { itemName: itemName, reviews: 0, rating: 0 };
+                    }
+                    products[catalogId].reviews = Math.max(products[catalogId].reviews, reviews);
+                    products[catalogId].rating = Math.max(products[catalogId].rating, rating);
+                }
+            });
+
+            const topByReviews = Object.values(products)
+                .sort(function(a, b) { return b.reviews - a.reviews; })
+                .slice(0, 5);
+
+            if (topByReviews.length > 0) {
+                const reviewSection = document.createElement('div');
+                reviewSection.innerHTML = '<h4 style="margin-bottom: 15px; color: var(--dark);">⭐ Top by Reviews</h4>';
+                topByReviews.forEach(function(product, idx) {
+                    reviewSection.innerHTML += '<div class="performer-card top" style="margin-bottom: 10px;"><div style="font-weight: 700; color: var(--primary); margin-bottom: 5px;">#' + (idx + 1) + '</div><div class="performer-name">' + product.itemName + '</div><div class="performer-metrics"><div class="metric-item"><div class="metric-label">Reviews</div><div class="metric-value good">' + product.reviews.toLocaleString() + '</div></div><div class="metric-item"><div class="metric-label">Rating</div><div class="metric-value good">' + product.rating.toFixed(1) + ' ⭐</div></div></div></div>';
+                });
+                container.appendChild(reviewSection);
+            }
+        }
+
+        function populatePDPs() {
+            const tbody = document.getElementById('pdpBody');
+            tbody.innerHTML = '';
+
+            if (!allData.ecomm.length) return;
+            
+            const pdps = allData.ecomm
+                .map(function(row) {
+                    const keys = Object.keys(row);
+                    return {
+                        name: keys.length > 1 ? row[keys[1]] : 'Unknown',
+                        sales: keys.length > 3 ? parseFloat(String(row[keys[3]] || 0).replace(/[^0-9.]/g, '')) : 0
+                    };
+                })
+                .filter(function(p) { return p.sales > 0; })
+                .sort(function(a, b) { return b.sales - a.sales; })
+                .slice(0, 10);
+
+            pdps.forEach(function(pdp, idx) {
+                tbody.innerHTML += '<tr><td>' + (idx + 1) + '</td><td>' + pdp.name + '</td><td>$' + pdp.sales.toLocaleString('en-US', {maximumFractionDigits: 0}) + '</td></tr>';
+            });
+        }
+
+        function findColumnValue(row, possibleNames) {
+            for (let i = 0; i < possibleNames.length; i++) {
+                if (row[possibleNames[i]]) return row[possibleNames[i]];
+            }
+            const keys = Object.keys(row);
+            for (let k = 0; k < keys.length; k++) {
+                for (let n = 0; n < possibleNames.length; n++) {
+                    if (keys[k].toLowerCase() === possibleNames[n].toLowerCase()) {
+                        return row[keys[k]];
+                    }
+                }
+            }
+            return null;
+        }
+
+        function setupCollapsibles() {
+            const headers = document.querySelectorAll('.collapsible-header');
+            for (let i = 0; i < headers.length; i++) {
+                headers[i].addEventListener('click', function() {
+                    this.classList.toggle('collapsed');
+                    this.nextElementSibling.classList.toggle('collapsed');
+                });
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('Clear all uploaded data? This cannot be undone.')) {
+                allData = {
+                    oneDash: [],
+                    ecomm: [],
+                    nullSearches: []
+                };
+                
+                const inputs = document.querySelectorAll('input[type="file"]');
+                for (let i = 0; i < inputs.length; i++) inputs[i].value = '';
+                
+                const statuses = document.querySelectorAll('.file-status');
+                for (let i = 0; i < statuses.length; i++) statuses[i].style.display = 'none';
+                
+                document.getElementById('dashboardSection').style.display = 'none';
+                document.getElementById('statusMessage').style.display = 'none';
+                
+                showStatus('✅ All data cleared', 'success');
+            }
+        }
+
+        function exportDashboard() {
+            const element = document.getElementById('dashboardSection');
+            if (element.style.display === 'none') {
+                showStatus('❌ Please analyze data first', 'error');
+                return;
+            }
+
+            showStatus('⏳ Generating PDF...', 'info');
+            
+            const options = {
+                margin: 10,
+                filename: 'ecom-dashboard.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, allowTaint: true },
+                jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' }
+            };
+
+            html2pdf().set(options).from(element).save().then(function() {
+                showStatus('✅ PDF exported successfully!', 'success');
+            }).catch(function() {
+                showStatus('❌ Export failed. Try a different browser.', 'error');
+            });
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                exportDashboard();
+            }
+        });
+    </script>
+</body>
+</html>
